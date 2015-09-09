@@ -114,10 +114,20 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
     # Insert win/lose/tie info into the matches table, except if the same
     # player is specified for winner and loser. This case is a Bye Game.
     if (winner != loser):
-        sql_insert = '''
+        sql = '''
         INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( %s, %s, %s, %s )
         '''
-        c.execute( sql_insert, (tournament_id, winner, loser, tied_match) )
+        c.execute( sql, (tournament_id, winner, loser, tied_match) )
+    else:
+        # For a bye game update the player's bye_game column in register table
+        sql = '''
+        UPDATE register SET bye_games = bye_games + 1 WHERE tournament_id = {t_id} AND player_id = {p_id}  
+        '''
+        sql_update = sql.format(
+            t_id   = str(tournament_id),
+            p_id   = str(winner)
+        )
+        c.execute(sql_update)
 
     # Update points in the register table for win or tie
     sql = '''
