@@ -128,6 +128,22 @@ def testPairings():
     print "8. After one match, players with one win are paired."
 
 
+def testByeGame():
+    deleteMatches()
+    deletePlayers()
+    registerPlayer("Twilight Sparkle")
+    registerPlayer("Fluttershy")
+    registerPlayer("Applejack")
+    registerPlayer("Pinkie Pie")
+    registerPlayer("Baba Gump")
+    pairings = swissPairings()
+    print pairings
+    if len(pairings) != 3:
+        raise ValueError(
+            "For five players, swissPairings should return two pairs and a bye.")
+    print "9. Bye game works."
+
+
 if __name__ == '__main__':
     testDeleteMatches()
     testDelete()
@@ -137,6 +153,7 @@ if __name__ == '__main__':
     testStandingsBeforeMatches()
     testReportMatches()
     testPairings()
+    testByeGame()
     print "Success!  All tests pass!"
 
 

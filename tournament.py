@@ -103,13 +103,22 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
       loser:  the id number of the player who lost
       tied:   boolean that denotes if the match was a tie
       tournament_id: id of the tournament for this match
+    Note:
+      if winner and loser are the same player, it signifies a Bye Game
+      and the player will get an automatic win, but the match will not 
+      be registered in the register table
     """
     db = connect()
     c = db.cursor()
     tied_match = ('true' if tied else 'false') 
-    # Insert win/lose/tie info into the matches table
-    sql_insert = "INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( %s, %s, %s, %s )"
-    c.execute( sql_insert, (tournament_id, winner, loser, tied_match) )
+    # Insert win/lose/tie info into the matches table, except if the same
+    # player is specified for winner and loser. This case is a Bye Game.
+    if (winner != loser):
+        sql_insert = '''
+        INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( %s, %s, %s, %s )
+        '''
+        c.execute( sql_insert, (tournament_id, winner, loser, tied_match) )
+
     # Update points in the register table for win or tie
     sql = '''
     UPDATE register SET points = points + {add_points} WHERE tournament_id = {t_id} AND player_id = {p_id}  
@@ -179,28 +188,27 @@ def swissPairings(tournament_id = 1):
         name2: the second player's name
     """
     swiss_pairings = []
-    player_standings = playerStandings(tournament_id)
+    standings = playerStandings(tournament_id)
     # paired_already is a list of booleans that denote if the corresponding index
-    # in player_standings has already been paired
-    paired_already   = [False] * len(player_standings)
+    # in standings has already been paired
+    paired_already   = [False] * len(standings)
 
     while True:
-        player_1 = pickNextPlayer(player_standings, paired_already)
+        player_1 = pickNextPlayer(standings, paired_already)
         if player_1 == -1:
             break 
-        player_2 = pickNextPlayer(player_standings, paired_already)
+        player_2 = pickNextPlayer(standings, paired_already)
         if player_2 == -1:
-            print "Bye not supported yet"
-            break
+            print "Player: " + standings[player_1][1] + " is getting a Bye Game (paired with self)"
+            player_2 = player_1 
         swiss_pairings.append(
             (
-                player_standings[player_1][0], 
-                player_standings[player_1][1],
-                player_standings[player_2][0],
-                player_standings[player_2][1]
+                standings[player_1][0], 
+                standings[player_1][1],
+                standings[player_2][0],
+                standings[player_2][1]
             )
         )
-    print swiss_pairings
     return swiss_pairings
 
 
