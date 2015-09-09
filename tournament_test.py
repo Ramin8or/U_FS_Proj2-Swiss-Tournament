@@ -138,7 +138,6 @@ def testByeGame():
     registerPlayer("Pinkie Pie")
     registerPlayer("Baba Gump")
     pairings = swissPairings()
-    print pairings
     if len(pairings) != 3:
         raise ValueError(
             "For five players, swissPairings should return two pairs and a bye.")
