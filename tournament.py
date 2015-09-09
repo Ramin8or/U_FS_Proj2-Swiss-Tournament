@@ -3,8 +3,10 @@
 # tournament.py -- implementation of a Swiss-system tournament
 #
 
+# dbapi library to connect to PostgreSQL database
 import psycopg2
 
+# Global constanst for points. Tie earns 1 point, Win earns 3
 POINTS_FOR_TIE = 1
 POINTS_FOR_WIN = 3
 
@@ -57,6 +59,9 @@ def registerPlayer(name, tournament_id = 1):
     Args:
       name: the player's full name (need not be unique).
       tournament_id: the tournament that player will be registred in. Default is 'Tournament 1'
+
+    Returns:
+      For testing purposes, this fucntion returns the id of player in players table
     """
     db = connect()
     c = db.cursor()
@@ -67,7 +72,8 @@ def registerPlayer(name, tournament_id = 1):
     player_id = c.fetchall()[0][0]
     c.execute( "INSERT INTO register ( tournament_id, player_id ) VALUES ( %s, %s )", (tournament_id, player_id) )
     db.commit()
-    db.close()    
+    db.close() 
+    return player_id   
 
 
 def playerStandings(tournament_id = 1):
@@ -88,7 +94,7 @@ def playerStandings(tournament_id = 1):
     """
     db = connect()
     c = db.cursor()
-    # Return the play standings from the standings view. See tournament.sql for the definition.
+    # Return the player standings from the standings view. See tournament.sql for the definition.
     c.execute( "SELECT id, name, points, matches FROM standings" )
     result = c.fetchall()
     db.close()    
@@ -104,26 +110,24 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
       tied:   boolean that denotes if the match was a tie
       tournament_id: id of the tournament for this match
     Note:
-      if winner and loser are the same player, it signifies a Bye Game
-      and the player will get an automatic win, but the match will not 
-      be registered in the register table
+      if winner and loser are the same player, it signifies a Bye Game.
     """
     db = connect()
     c = db.cursor()
     tied_match = ('true' if tied else 'false') 
-    # Insert win/lose/tie info into the matches table, except if the same
-    # player is specified for winner and loser. This case is a Bye Game.
     if (winner != loser):
+        # Insert win/lose/tie info into the matches table.
         sql = '''
         INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( %s, %s, %s, %s )
         '''
         c.execute( sql, (tournament_id, winner, loser, tied_match) )
     else:
-        # For a bye game update the player's bye_game column in register table
+        # For a bye game (wiiner == loser) update the player's bye_game column in register table.
+        # The bye game will not be recorded in matches table, but player's points will be updated.
         sql = '''
         UPDATE register SET bye_games = bye_games + 1 WHERE tournament_id = {t_id} AND player_id = {p_id}  
         '''
-        sql_update = sql.format(
+        sql_update = sql.format( 
             t_id   = str(tournament_id),
             p_id   = str(winner)
         )
@@ -159,10 +163,11 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
     db.close()    
 
 
-def pickNextPlayer(standings, picked_already):
+def pickNextPlayer(start, standings, picked_already):
     """Returns the index of next available player
    
     Arg:
+      start: start looking from this index onward
       standings: list returned from playerStandings() function
       picked_already: list of booleans that denote whether the index in 
                        standings has already been picked. 
@@ -172,10 +177,17 @@ def pickNextPlayer(standings, picked_already):
       -1 is returned if there is no more player left to select
       it also sets the picked_already[index] to True
     """
-    for index in range(0, len(standings)):
+    for index in range(start, len(standings)):
+        if picked_already[index] == False:
+            # Return the index for this player, we're done
+            picked_already[index] = True
+            return index
+    # If there are any unpicked players left, return the first one before giving up
+    for index in range(0, len(picked_already)):
         if picked_already[index] == False:
             picked_already[index] = True
             return index
+    # No one else left, giving up     
     return -1
 
 
@@ -186,6 +198,9 @@ def swissPairings(tournament_id = 1):
     appears exactly once in the pairings.  Each player is paired with another
     player with an equal or nearly-equal win record, that is, a player adjacent
     to him or her in the standings.
+    For an odd number of players, the last player will be paired with him/herself
+    to denote a bye game. The fuction reportMatch() detects bye games when winner
+    and loser are the same players.
   
     Arg:
       tournament_id: id of the tournament to perform swiss pairing for
@@ -198,28 +213,26 @@ def swissPairings(tournament_id = 1):
         name2: the second player's name
     """
     swiss_pairings = []
+    # playerStandings() already returns list sorted by points and includes tie breakers
     standings = playerStandings(tournament_id)
-    # paired_already is a list of booleans that denote if the corresponding index
-    # in standings has already been paired
-    paired_already   = [False] * len(standings)
+    # paired_table is a list of booleans to denote if a player at index has already been paired
+    paired_table = [False] * len(standings)
 
+    starting_index = 0
     while True:
-        player_1 = pickNextPlayer(standings, paired_already)
+        player_1 = pickNextPlayer(starting_index, standings, paired_table)
         if player_1 == -1:
+            # No more players to match, we are done
             break 
-        player_2 = pickNextPlayer(standings, paired_already)
+        player1_id = standings[player_1][0]
+        starting_index = player_1 + 1 
+        player_2 = pickNextPlayer(starting_index, standings, paired_table) 
         if player_2 == -1:
-            print "Player: " + standings[player_1][1] + " is getting a Bye Game (paired with self)"
+            # No one to pair with, player will get a buy game by being paired with itself
             player_2 = player_1 
-        swiss_pairings.append(
-            (
-                standings[player_1][0], 
-                standings[player_1][1],
-                standings[player_2][0],
-                standings[player_2][1]
-            )
+        swiss_pairings.append( (standings[player_1][0], standings[player_1][1],
+                                standings[player_2][0], standings[player_2][1] )
         )
     return swiss_pairings
-
 
 

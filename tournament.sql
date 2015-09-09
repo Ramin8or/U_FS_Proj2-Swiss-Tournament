@@ -16,12 +16,14 @@ CREATE DATABASE tournament;
 CREATE TABLE players (  id SERIAL PRIMARY KEY,
                         name TEXT );
 
+
 -- tournaments table
 CREATE TABLE tournaments (  id SERIAL PRIMARY KEY,
                             name TEXT );
 
 -- Initialize tournaments table by inserting a default tournament
 INSERT INTO tournaments ( name ) VALUES ( 'Tournament 1' );
+
 
 -- register table holds players and tournaments they are registed in
 -- it also tracks each registered player's points and number of bye games
@@ -31,6 +33,7 @@ CREATE TABLE register ( tournament_id INTEGER REFERENCES tournaments(id),
                         bye_games     INTEGER DEFAULT 0,
                         PRIMARY KEY(tournament_id, player_id) );
 
+
 -- matches table
 CREATE TABLE matches (  id            SERIAL PRIMARY KEY,
                         tournament_id INTEGER REFERENCES tournaments(id),
@@ -38,6 +41,7 @@ CREATE TABLE matches (  id            SERIAL PRIMARY KEY,
                         loser_id      INTEGER REFERENCES players(id),
                         tied          BOOLEAN DEFAULT false
                      );
+
 
 -- View to query number of matches
 CREATE VIEW matches_count AS
@@ -53,6 +57,7 @@ CREATE VIEW matches_count AS
         register.tournament_id, register.player_id
     ORDER BY matches_count DESC;
 
+
 -- View on opponents of each player
 CREATE VIEW opponents AS
     SELECT  register.tournament_id, register.player_id, matches.loser_id AS opponent_id
@@ -67,7 +72,8 @@ CREATE VIEW opponents AS
         (register.tournament_id = matches.tournament_id) AND
         (register.player_id = matches.loser_id);
 
--- View on OMW (Opponent Match Wins) which show total points for the opponents
+
+-- View on OMW (Opponent Match Wins) which shows total points for the opponents
 CREATE VIEW opponents_points AS
     SELECT opponents.tournament_id, opponents.player_id, SUM( register.points ) AS opponents_points
     FROM   opponents
@@ -76,7 +82,8 @@ CREATE VIEW opponents_points AS
         (opponents.opponent_id = register.player_id)
     GROUP BY opponents.tournament_id, opponents.player_id;
 
--- View to query player standings
+
+-- View to query player standings, ordered by number of points and opponents points
 CREATE VIEW standings AS
     SELECT  register.player_id  AS id,
             players.name        AS name,
@@ -101,25 +108,3 @@ CREATE VIEW standings AS
         register.points DESC, 
         opponents_points.opponents_points DESC;
 
--- Initial data for testing
---INSERT INTO players ( name ) VALUES ( 'one' );
---INSERT INTO players ( name ) VALUES ( 'two' );
---INSERT INTO players ( name ) VALUES ( 'three' );
---INSERT INTO players ( name ) VALUES ( 'four' );
---INSERT INTO players ( name ) VALUES ( 'five' );
---INSERT INTO players ( name ) VALUES ( 'six' );
-
---INSERT INTO register ( tournament_id, player_id, points ) VALUES ( 1,1,4 );
---INSERT INTO register ( tournament_id, player_id, points ) VALUES ( 1,2,3 );
---INSERT INTO register ( tournament_id, player_id, points ) VALUES ( 1,3,4 );
---INSERT INTO register ( tournament_id, player_id, points ) VALUES ( 1,4,0 );
---INSERT INTO register ( tournament_id, player_id, points ) VALUES ( 1,5,4 );
---INSERT INTO register ( tournament_id, player_id, points ) VALUES ( 1,6,1 );
-
---INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,1,2,false );
---INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,3,4,false );
---INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,5,6,true  );
-
---INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,1,3,true  );
---INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,2,4,false );
---INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,5,6,false );

@@ -4,6 +4,7 @@
 
 from tournament import *
 
+# Global constanst for points. Tie earns 1 point, Win earns 3
 POINTS_FOR_TIE = 1
 POINTS_FOR_WIN = 3
 
