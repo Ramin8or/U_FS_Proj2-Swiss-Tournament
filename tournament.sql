@@ -20,6 +20,7 @@ CREATE TABLE players (  id SERIAL PRIMARY KEY,
 CREATE TABLE tournaments (  id SERIAL PRIMARY KEY,
                             name TEXT );
 
+-- Initialize tournaments table by inserting a default tournament
 INSERT INTO tournaments ( name ) VALUES ( 'Tournament 1' );
 
 -- register table holds players and tournaments they are registed in
@@ -77,10 +78,9 @@ CREATE VIEW opponents_score AS
 
 -- View to query player standings
 CREATE VIEW standings AS
-    SELECT  register.tournament_id,
+    SELECT  register.player_id,
             players.name,
             register.score,
-            opponents_score.opponents_score,
             COUNT( matches ) as total_matches
     FROM   register
     LEFT JOIN players ON
@@ -102,24 +102,24 @@ CREATE VIEW standings AS
         opponents_score.opponents_score DESC;
 
 -- Initial data for testing
-INSERT INTO players ( name ) VALUES ( 'one' );
-INSERT INTO players ( name ) VALUES ( 'two' );
-INSERT INTO players ( name ) VALUES ( 'three' );
-INSERT INTO players ( name ) VALUES ( 'four' );
-INSERT INTO players ( name ) VALUES ( 'five' );
-INSERT INTO players ( name ) VALUES ( 'six' );
-
-INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,1,4 );
-INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,2,3 );
-INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,3,4 );
-INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,4,0 );
-INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,5,4 );
-INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,6,1 );
-
-INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,1,2,false );
-INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,3,4,false );
-INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,5,6,true  );
-
-INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,1,3,true  );
-INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,2,4,false );
-INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,5,6,false );
+--INSERT INTO players ( name ) VALUES ( 'one' );
+--INSERT INTO players ( name ) VALUES ( 'two' );
+--INSERT INTO players ( name ) VALUES ( 'three' );
+--INSERT INTO players ( name ) VALUES ( 'four' );
+--INSERT INTO players ( name ) VALUES ( 'five' );
+--INSERT INTO players ( name ) VALUES ( 'six' );
+--
+--INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,1,4 );
+--INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,2,3 );
+--INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,3,4 );
+--INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,4,0 );
+--INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,5,4 );
+--INSERT INTO register ( tournament_id, player_id, score ) VALUES ( 1,6,1 );
+--
+--INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,1,2,false );
+--INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,3,4,false );
+--INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,5,6,true  );
+--
+--INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,1,3,true  );
+--INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,2,4,false );
+--INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( 1,5,6,false );
