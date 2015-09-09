@@ -139,7 +139,27 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
     db.commit()
     db.close()    
 
- 
+
+def pickNextPlayer(standings, picked_already):
+    """Returns the index of next available player
+   
+    Arg:
+      standings: list returned from playerStandings() function
+      picked_already: list of booleans that denote whether the index in 
+                       standings has already been picked. 
+
+    Returns:
+      returns the index of first player in standings that has not been picked
+      -1 is returned if there is no more player left to select
+      it also sets the picked_already[index] to True
+    """
+    for index in range(0, len(standings)):
+        if picked_already[index] == False:
+            picked_already[index] = True
+            return index
+    return -1
+
+
 def swissPairings(tournament_id = 1):
     """Returns a list of pairs of players for the next round of a match.
   
@@ -158,5 +178,30 @@ def swissPairings(tournament_id = 1):
         id2: the second player's unique id
         name2: the second player's name
     """
+    swiss_pairings = []
+    player_standings = playerStandings(tournament_id)
+    # paired_already is a list of booleans that denote if the corresponding index
+    # in player_standings has already been paired
+    paired_already   = [False] * len(player_standings)
+
+    while True:
+        player_1 = pickNextPlayer(player_standings, paired_already)
+        if player_1 == -1:
+            break 
+        player_2 = pickNextPlayer(player_standings, paired_already)
+        if player_2 == -1:
+            print "Bye not supported yet"
+            break
+        swiss_pairings.append(
+            (
+                player_standings[player_1][0], 
+                player_standings[player_1][1],
+                player_standings[player_2][0],
+                player_standings[player_2][1]
+            )
+        )
+    print swiss_pairings
+    return swiss_pairings
+
 
 
