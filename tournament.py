@@ -5,6 +5,8 @@
 
 import psycopg2
 
+POINTS_FOR_TIE = 1
+POINTS_FOR_WIN = 3
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
@@ -78,13 +80,13 @@ def playerStandings(tournament_id = 1):
     db = connect()
     c = db.cursor()
     # Insert player into the players table
-    c.execute( "SELECT * FROM standings" )
+    c.execute( "SELECT id, name, wins, matches FROM standings" )
     result = c.fetchall()
     db.close()    
     return result
 
 
-def reportMatch(winner, loser, tie = false, tournament_id = 1):
+def reportMatch(winner, loser, tied = 'false', tournament_id = 1):
     """Records the outcome of a single match between two players.
 
     Args:
@@ -93,7 +95,26 @@ def reportMatch(winner, loser, tie = false, tournament_id = 1):
       tie:    boolean that denotes if the match was a tie
       tournament_id: id of the tournament for this match
     """
- 
+    db = connect()
+    c = db.cursor()
+    # Insert win/lose/tie info into the matches table
+    sql_insert = "INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( %s, %s, %s, %s )"
+    #print sql_insert
+    c.execute( sql_insert, (tournament_id, winner, loser, tied) )
+    # Update score in the register table for win/lose/tie
+    sql = '''
+    UPDATE register SET score = score + {points} WHERE tournament_id = {t_id} AND player_id = {p_id}  
+    '''
+    sql_update = sql.format(
+        points = str(POINTS_FOR_WIN),
+        t_id   = str(tournament_id),
+        p_id   = str(winner)
+    )
+    #print sql_update
+    c.execute(sql_update)
+    db.commit()
+    db.close()    
+
  
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.

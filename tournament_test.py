@@ -4,6 +4,9 @@
 
 from tournament import *
 
+POINTS_FOR_TIE = 1
+POINTS_FOR_WIN = 3
+
 def testDeleteMatches():
     deleteMatches()
     print "1. Old matches can be deleted."
@@ -94,7 +97,7 @@ def testReportMatches():
     for (i, n, w, m) in standings:
         if m != 1:
             raise ValueError("Each player should have one match recorded.")
-        if i in (id1, id3) and w != 1:
+        if i in (id1, id3) and w != POINTS_FOR_WIN:
             raise ValueError("Each match winner should have one win recorded.")
         elif i in (id2, id4) and w != 0:
             raise ValueError("Each match loser should have zero wins recorded.")

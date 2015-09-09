@@ -78,10 +78,10 @@ CREATE VIEW opponents_score AS
 
 -- View to query player standings
 CREATE VIEW standings AS
-    SELECT  register.player_id,
-            players.name,
-            register.score,
-            COUNT( matches ) as total_matches
+    SELECT  register.player_id  AS id,
+            players.name        AS name,
+            register.score      AS wins,
+            COUNT( matches )    AS matches
     FROM   register
     LEFT JOIN players ON
         (register.player_id = players.id)
