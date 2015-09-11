@@ -6,6 +6,8 @@
 # dbapi library to connect to PostgreSQL database
 import psycopg2
 
+from collections import defaultdict
+
 # Global constanst for points. Tie earns 1 point, Win earns 3
 POINTS_FOR_TIE = 1
 POINTS_FOR_WIN = 3
@@ -163,7 +165,32 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
     db.close()    
 
 
-def pickNextPlayer(start, standings, picked_already):
+def getOpponents(tournament_id = 1):
+    """Returns a list of consisting of players and opponents they have played against in tournament_id
+
+    Arg:
+         tournament_id: denotes the tournament (default is 'Tournament 1')
+    
+    Returns:
+      A list of tuples, each of which contains (player_id, opponent_id):
+        player_id: the player's unique id (assigned by the database)
+        opponent_id: the id of player who has been an opponent of player_id
+    """
+    db = connect()
+    c = db.cursor()
+    # Return the player standings from the standings view. See tournament.sql for the definition.
+    c.execute( "SELECT player_id, opponent_id FROM opponents WHERE tournament_id = (%s)", 
+            (tournament_id,) )
+    results = c.fetchall()
+    db.close()
+    opponents_table = defaultdict(list)
+    for row in results:
+        opponents_table[row[0]].append(row[1])
+
+    return opponents_table
+
+
+def pickNextPlayer(standings, picked_already, opponents_list=[]):
     """Returns the index of next available player
    
     Arg:
@@ -177,8 +204,11 @@ def pickNextPlayer(start, standings, picked_already):
       -1 is returned if there is no more player left to select
       it also sets the picked_already[index] to True
     """
-    for index in range(start, len(standings)):
+    for index in range(0, len(standings)):
         if picked_already[index] == False:
+            # Skip player if this player is in the opponents_list
+            if standings[index][0] in opponents_list:
+                continue
             # Return the index for this player, we're done
             picked_already[index] = True
             return index
@@ -218,15 +248,16 @@ def swissPairings(tournament_id = 1):
     # paired_table is a list of booleans to denote if a player at index has already been paired
     paired_table = [False] * len(standings)
 
-    starting_index = 0
+    opponents_table = getOpponents(tournament_id)
+
     while True:
-        player_1 = pickNextPlayer(starting_index, standings, paired_table)
+        player_1 = pickNextPlayer(standings, paired_table)
         if player_1 == -1:
             # No more players to match, we are done
             break 
         player1_id = standings[player_1][0]
-        starting_index = player_1 + 1 
-        player_2 = pickNextPlayer(starting_index, standings, paired_table) 
+        opponents_list = opponents_table[player1_id]
+        player_2 = pickNextPlayer(standings, paired_table, opponents_list) 
         if player_2 == -1:
             # No one to pair with, player will get a buy game by being paired with itself
             player_2 = player_1 
