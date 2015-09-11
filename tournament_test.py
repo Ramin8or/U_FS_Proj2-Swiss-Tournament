@@ -132,16 +132,31 @@ def testPairings():
 def testByeGame():
     deleteMatches()
     deletePlayers()
-    registerPlayer("Twilight Sparkle")
-    registerPlayer("Fluttershy")
-    registerPlayer("Applejack")
-    registerPlayer("Pinkie Pie")
-    registerPlayer("Baba Gump")
+    p1 = registerPlayer("1")
+    p2 = registerPlayer("2")
+    p3 = registerPlayer("3")
+    p4 = registerPlayer("4")
+    p5 = registerPlayer("5")
     pairings = swissPairings()
     if len(pairings) != 3:
         raise ValueError(
-            "For five players, swissPairings should return two pairs and a bye.")
-    print "9. Bye game works."
+            "For five players, swissPairings should return three pairs.")
+    # Verify that there is one pairing with a player matched with itself (bye game)
+    found_bye = False
+    for each_tuple in pairings:
+        (pid1, name1, pid2, name2) = each_tuple
+        if pid1 == pid2:
+            if found_bye == False:
+                found_bye = True
+            else:
+                raise ValueError(
+                    "There should only be a single bye game.")
+
+    if found_bye == False:
+        raise ValueError(
+            "No bye game was scheduled.")
+
+    print "9. Swiss pairing handles bye games for odd number of players."
 
 
 def testNoRematch():
