@@ -20,11 +20,13 @@ def connect():
 def deleteMatches(tournament_id = 1):
     """Remove all the match records from the database for the given tournament.
     Arg:
-        tournament_id: denotes the tournament to delete matches from (default is 'Tournament 1')
+      tournament_id: denotes the tournament to delete matches from
     """
     db = connect()
     c = db.cursor()
-    c.execute( "DELETE FROM matches WHERE tournament_id = (%s)", (tournament_id, ) )
+    c.execute( "DELETE FROM matches WHERE tournament_id = (%s)", 
+        (tournament_id, )
+    )
     db.commit()
     db.close()
 
@@ -48,44 +50,52 @@ def countPlayers(tournament_id = 1):
     """
     db = connect()
     c = db.cursor()
-    c.execute( "SELECT COUNT( player_id ) AS player_count FROM register WHERE tournament_id = (%s)", (tournament_id, ) )
+    sql = '''
+    SELECT COUNT( player_id ) AS player_count 
+        FROM register 
+        WHERE tournament_id = (%s)
+    '''
+    c.execute(sql, (tournament_id, ))
     result = c.fetchall()
     db.close()
     return result[0][0]  
 
 
 def registerPlayer(name, tournament_id = 1):
-    """Adds a player to the tournament database for the specified tournament_id.
-    The players as well as register tables will be modified to register this player for the tournament.
+    """Adds a player to the tournament database in specified tournament_id.
    
     Args:
       name: the player's full name (need not be unique).
-      tournament_id: the tournament that player will be registred in. Default is 'Tournament 1'
+      tournament_id: the tournament default is 'Tournament 1'
 
     Returns:
-      For testing purposes, this fucntion returns the id of player in players table
+      For testing purposes, the id of player is returned.
     """
     db = connect()
     c = db.cursor()
     # Insert player into the players table
-    c.execute( "INSERT INTO players ( name ) VALUES ( (%s) ) RETURNING id", (name, ))
+    c.execute( "INSERT INTO players ( name ) VALUES ( (%s) ) RETURNING id", 
+        (name, ))
     db.commit()
-    # Use the retuned id to insert the player_id and tournament_id into the register table
+    # Using retuned id, insert player_id and tournament_id into register
     player_id = c.fetchall()[0][0]
-    c.execute( "INSERT INTO register ( tournament_id, player_id ) VALUES ( %s, %s )", (tournament_id, player_id) )
+    c.execute( 
+        "INSERT INTO register ( tournament_id, player_id ) VALUES ( %s, %s )", 
+        (tournament_id, player_id) 
+    )
     db.commit()
     db.close() 
     return player_id   
 
 
 def playerStandings(tournament_id = 1):
-    """Returns a list of the players and their win records, sorted by overall standings
+    """Returns list of players and win records, sorted by overall standings.
 
-    The first entry in the list should be the player in first place, or a player
+    The first entry in the list should be the player in first place, or player
     tied for first place if there is currently a tie.
     
     Arg:
-        tournament_id: denotes the tournament for playerStandings (default is 'Tournament 1')
+      tournament_id: denotes the tournament (default is 'Tournament 1')
     
     Returns:
       A list of tuples, each of which contains (id, name, wins, matches):
@@ -96,7 +106,7 @@ def playerStandings(tournament_id = 1):
     """
     db = connect()
     c = db.cursor()
-    # Return the player standings from the standings view. See tournament.sql for the definition.
+    # Return the player standings from the standings view. See tournament.sql.
     c.execute( "SELECT id, name, wins, matches FROM standings" )
     result = c.fetchall()
     db.close()    
@@ -126,7 +136,8 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
         c.execute( sql, (tournament_id, winner, loser, tied_match) )
     else:
         # For a bye game (winner == loser) update byes in register table.
-        # Points/win for player will be updated but bye game won't appear in matches
+        # Points/win for player will be updated but bye game won't 
+        # appear in matches table.
         sql_update_bye = '''
         UPDATE register 
             SET byes = byes + 1 
@@ -163,10 +174,10 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
 
 
 def getOpponents(tournament_id = 1):
-    """Returns a list of consisting of players and opponents they have played against in tournament_id
+    """Returns dictionary of players and opponents they have played against.
 
     Arg:
-         tournament_id: denotes the tournament (default is 'Tournament 1')
+      tournament_id: denotes the tournament (default is 'Tournament 1')
     
     Returns:
       A list of tuples, each of which contains (player_id, opponent_id):
@@ -175,15 +186,18 @@ def getOpponents(tournament_id = 1):
     """
     db = connect()
     c = db.cursor()
-    # Return the player standings from the standings view. See tournament.sql for the definition.
-    c.execute( "SELECT player_id, opponent_id FROM opponents WHERE tournament_id = (%s)", 
-            (tournament_id,) )
+    # Fetch opponents from opponents view in tournament.sql.
+    sql = '''
+        SELECT player_id, opponent_id FROM opponents 
+        WHERE tournament_id = (%s)
+    '''
+    c.execute(sql, (tournament_id,))
     results = c.fetchall()
     db.close()
+    # Create dictionary where key is player_id, value is list of opponents
     opponents_table = defaultdict(list)
     for row in results:
         opponents_table[row[0]].append(row[1])
-
     return opponents_table
 
 
@@ -191,15 +205,15 @@ def pickNextPlayer(standings, picked_already, opponents_list=[]):
     """Returns the index of next available player
    
     Arg:
-      start: start looking from this index onward
-      standings: list returned from playerStandings() function
+      standings: list returned from playerStandings() function.
       picked_already: list of booleans that denote whether the index in 
                        standings has already been picked. 
+      opponents_list: list of opponents that should not play against.
 
     Returns:
-      returns the index of first player in standings that has not been picked
+      Function sets the picked_already[index] to True, when player is picked
+      returns the index into standings of player that is picked
       -1 is returned if there is no more player left to select
-      it also sets the picked_already[index] to True
     """
     for index in range(0, len(standings)):
         if picked_already[index] == False:
@@ -225,9 +239,9 @@ def swissPairings(tournament_id = 1):
     appears exactly once in the pairings.  Each player is paired with another
     player with an equal or nearly-equal win record, that is, a player adjacent
     to him or her in the standings.
-    For an odd number of players, the last player will be paired with him/herself
-    to denote a bye game. The fuction reportMatch() detects bye games when winner
-    and loser are the same players.
+    For an odd number of players, the last player will be paired with itself
+    to denote a bye game. reportMatch() detects bye games when winner and
+    loser is the same player.
   
     Arg:
       tournament_id: id of the tournament to perform swiss pairing for
@@ -240,27 +254,34 @@ def swissPairings(tournament_id = 1):
         name2: the second player's name
     """
     swiss_pairings = []
-    # playerStandings() already returns list sorted by points and includes tie breakers
+    # playerStandings() returns list sorted by standing including tie breakers
     standings = playerStandings(tournament_id)
-    # paired_table is a list of booleans to denote if a player at index has already been paired
+    # paired_table is list of booleans to denote if player at index is paired
     paired_table = [False] * len(standings)
-
+    # opponents_table is a dictionary of players and their opponents
     opponents_table = getOpponents(tournament_id)
-
+    # Do the Swiss Pairing
     while True:
+        # Pick the top unpaired player
         player_1 = pickNextPlayer(standings, paired_table)
         if player_1 == -1:
             # No more players to match, we are done
-            break 
+            break
+        # Get the player_id from standings 
         player1_id = standings[player_1][0]
+        # Get the list of opponents for this player
         opponents_list = opponents_table[player1_id]
+        # Pick the next player in standings, avoid rematch using opponent_list
         player_2 = pickNextPlayer(standings, paired_table, opponents_list) 
         if player_2 == -1:
-            # No one to pair with, player will get a buy game by being paired with itself
+            # No one to pair with. Player gets a bye game (paired with itself)
             player_2 = player_1 
-        swiss_pairings.append( (standings[player_1][0], standings[player_1][1],
-                                standings[player_2][0], standings[player_2][1] )
+        # Append to swiss_parings results
+        swiss_pairings.append(
+            (standings[player_1][0], standings[player_1][1],
+            standings[player_2][0], standings[player_2][1])
         )
+    # We are done!
     return swiss_pairings
 
 
