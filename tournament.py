@@ -9,8 +9,8 @@ import psycopg2
 from collections import defaultdict
 
 # Global constanst for points. Tie earns 1 point, Win earns 3
-POINTS_FOR_TIE = 1
-POINTS_FOR_WIN = 3
+TIE_POINTS = 1
+WIN_POINTS = 3
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
@@ -79,7 +79,7 @@ def registerPlayer(name, tournament_id = 1):
 
 
 def playerStandings(tournament_id = 1):
-    """Returns a list of the players and their win records, sorted by points from wins/ties.
+    """Returns a list of the players and their win records, sorted by overall standings
 
     The first entry in the list should be the player in first place, or a player
     tied for first place if there is currently a tie.
@@ -88,16 +88,16 @@ def playerStandings(tournament_id = 1):
         tournament_id: denotes the tournament for playerStandings (default is 'Tournament 1')
     
     Returns:
-      A list of tuples, each of which contains (id, name, points, matches):
+      A list of tuples, each of which contains (id, name, wins, matches):
         id: the player's unique id (assigned by the database)
         name: the player's full name (as registered)
-        points: the number of points from matches the player has won or tied
+        wins: the number of wins
         matches: the number of matches the player has played
     """
     db = connect()
     c = db.cursor()
     # Return the player standings from the standings view. See tournament.sql for the definition.
-    c.execute( "SELECT id, name, points, matches FROM standings" )
+    c.execute( "SELECT id, name, wins, matches FROM standings" )
     result = c.fetchall()
     db.close()    
     return result
@@ -120,47 +120,44 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
     if (winner != loser):
         # Insert win/lose/tie info into the matches table.
         sql = '''
-        INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) VALUES ( %s, %s, %s, %s )
+        INSERT INTO matches ( tournament_id, winner_id, loser_id, tied  ) 
+            VALUES ( %s, %s, %s, %s )
         '''
         c.execute( sql, (tournament_id, winner, loser, tied_match) )
     else:
-        # For a bye game (wiiner == loser) update the player's bye_game column in register table.
-        # The bye game will not be recorded in matches table, but player's points will be updated.
-        sql = '''
-        UPDATE register SET bye_games = bye_games + 1 WHERE tournament_id = {t_id} AND player_id = {p_id}  
+        # For a bye game (winner == loser) update byes in register table.
+        # Points/win for player will be updated but bye game won't appear in matches
+        sql_update_bye = '''
+        UPDATE register 
+            SET byes = byes + 1 
+            WHERE tournament_id = {t_id} AND player_id = {p_id}  
         '''
-        sql_update = sql.format( 
-            t_id   = str(tournament_id),
-            p_id   = str(winner)
-        )
-        c.execute(sql_update)
-
+        c.execute(sql_update_bye, str(tournament_id), str(winner))
     # Update points in the register table for win or tie
-    sql = '''
-    UPDATE register SET points = points + {add_points} WHERE tournament_id = {t_id} AND player_id = {p_id}  
+    sql_update_points = '''
+    UPDATE register 
+        SET points = points + %s WHERE 
+        tournament_id = %s AND player_id = %s  
     '''
-    if (tied == False):
-        # If not a tied game, the winner gets POINTS_FOR_WIN points
-        sql_update = sql.format(
-            add_points = str(POINTS_FOR_WIN),
-            t_id   = str(tournament_id),
-            p_id   = str(winner)
+    if (tied == True):
+        # For a tied match, both players get an additional TIE_POINTS points
+        c.execute(sql_update_points, 
+            (str(TIE_POINTS), str(tournament_id), str(winner))
         )
-        c.execute(sql_update)
+        c.execute(sql_update_points, 
+            (str(TIE_POINTS), str(tournament_id), str(loser))
+        )
     else:
-        # For a tied match, both players get POINTS_FOR_TIE points
-        sql_update = sql.format(
-            add_points = str(POINTS_FOR_TIE),
-            t_id   = str(tournament_id),
-            p_id   = str(winner)
+        # If not a tied game, the winner gets WIN_POINTS points
+        c.execute(sql_update_points, 
+            (str(WIN_POINTS), str(tournament_id), str(winner))
         )
-        c.execute(sql_update)
-        sql_update = sql.format(
-            add_points = str(POINTS_FOR_TIE),
-            t_id   = str(tournament_id),
-            p_id   = str(loser)
-        )
-        c.execute(sql_update)
+        sql_update_wins = '''
+        UPDATE register 
+            SET wins = wins + 1 
+            WHERE tournament_id = (%s) AND player_id = (%s)  
+        '''
+        c.execute(sql_update_wins,(str(tournament_id), str(winner)))
     db.commit()
     db.close()    
 

@@ -26,12 +26,14 @@ INSERT INTO tournaments ( name ) VALUES ( 'Tournament 1' );
 
 
 -- register table holds players and tournaments they are registed in
--- it also tracks each registered player's points and number of bye games
+-- it also tracks each registered player's points and number of byes 
 CREATE TABLE register ( tournament_id INTEGER REFERENCES tournaments(id),
                         player_id     INTEGER REFERENCES players(id),
+                        wins          INTEGER DEFAULT 0,
                         points        INTEGER DEFAULT 0,
-                        bye_games     INTEGER DEFAULT 0,
-                        PRIMARY KEY(tournament_id, player_id) );
+                        byes          INTEGER DEFAULT 0,
+                        PRIMARY KEY(tournament_id, player_id) 
+                     );
 
 
 -- matches table
@@ -87,7 +89,7 @@ CREATE VIEW opponents_points AS
 CREATE VIEW standings AS
     SELECT  register.player_id  AS id,
             players.name        AS name,
-            register.points     AS points,
+            register.wins       AS wins,
             COUNT( matches )    AS matches
     FROM   register
     LEFT JOIN players ON
@@ -107,4 +109,3 @@ CREATE VIEW standings AS
     ORDER BY
         register.points DESC, 
         opponents_points.opponents_points DESC;
-

@@ -4,9 +4,6 @@
 
 from tournament import *
 
-# Global constanst for points. Tie earns 1 point, Win earns 3
-POINTS_FOR_TIE = 1
-POINTS_FOR_WIN = 3
 
 def testDeleteMatches():
     deleteMatches()
@@ -98,7 +95,7 @@ def testReportMatches():
     for (i, n, w, m) in standings:
         if m != 1:
             raise ValueError("Each player should have one match recorded.")
-        if i in (id1, id3) and w != POINTS_FOR_WIN:
+        if i in (id1, id3) and w != 1:
             raise ValueError("Each match winner should have one win recorded.")
         elif i in (id2, id4) and w != 0:
             raise ValueError("Each match loser should have zero wins recorded.")
@@ -169,7 +166,7 @@ def testNoRematch():
     p5 = registerPlayer("5")
     p6 = registerPlayer("6")
 
-    # All odd number players tie each other
+    # All odd number players tie each other (1,3,5)
     reportMatch(p1, p3, True)
     reportMatch(p1, p5, True)
     reportMatch(p3, p5, True)
@@ -177,7 +174,7 @@ def testNoRematch():
     reportMatch(p5, p1, True)
     reportMatch(p5, p3, True)
 
-    # All even number players win each other
+    # All even number players win each other (2,4,6)
     reportMatch(p2, p4)
     reportMatch(p4, p2)
     reportMatch(p2, p6)
@@ -185,7 +182,7 @@ def testNoRematch():
     reportMatch(p4, p6)
     reportMatch(p6, p4)
 
-    # Verify that the top 3 players are even numbered, bottom 3 are odd
+    # Verify that the top 3 players names are even numbers, bottom 3 are odd
     standings = playerStandings()
     index = 0
     for row in standings:
@@ -195,7 +192,7 @@ def testNoRematch():
         else:
             if (int(row[1]) % 2) == 0:
                 raise ValueError("Bottom 3 players must be odd numbered.")
-        index +=1
+        index += 1
    
     # Verify that only odd vs. even pairs are matched, even though even players have higher points
     pairings = swissPairings()
