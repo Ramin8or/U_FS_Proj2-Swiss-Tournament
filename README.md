@@ -1,12 +1,12 @@
 # U_FS_Proj2-Swiss-Tournament
 Udacity Full-Stack Nanodegree Project 2: Swiss Tournament 
 
-# Intoduction
+# Introduction
 This project is the second project for Udacity Full-Stack Nanodegree. For more information on setting up the environment to run the project and the specifications please refer to this document:
 
 https://docs.google.com/document/d/16IgOm4XprTaKxAa8w02y028oBECOoB1EI1ReddADEeY/pub?embedded=true
 
-The project uses a PostgreSQL database to record tournament information such as players, matches, points etc. The database schema is provided in *tournament.sql* file. The Python code in *tournament.py* accesses the database to record play and match information as well as tracking player standings. It also performs a Swiss Tournament Pairing among the players. There is a test file, *tournament_test.py* that excercise the features provided by this project.
+The project uses a PostgreSQL database to record tournament information such as players, matches, tournaments etc. The database schema is provided in *tournament.sql* file. The Python code in *tournament.py* accesses the database to record play and match information as well as tracking player standings. It also performs a Swiss Tournament Pairing among the players. There is a test file, *tournament_test.py* that excercise the features provided by this project.
 
 # Pre-requisite
 - Install Vagrant and Python
@@ -16,6 +16,7 @@ The project uses a PostgreSQL database to record tournament information such as 
 
 # Extra credit features implemented
 Beyond the basic requirements, the following features have also been implemented:
+- Prevent rematches between players
 - Bye games: when number of players is uneven, one player gets a bye game which is an automatic win
 - Tied games: reportMatch() has an additional default parameter that denotes a draw
 - Opponent Match Wins: when two players have the same number of points, a tie breaker is used by looking at OMW. The player who has played against opponents with more points wins.
@@ -35,5 +36,5 @@ In addition, there are views stored in this database that provide the following 
 - Player Standings: this view is a list of players ranked by their points. If two players have the same number of points, the information about the points for opponents they have won against is used as a tie breaker.
 
 # Swiss Tournament Pairing
-Since the database view for PlayerStandings already provides a ranked list of players, the pairing is done simply by pairing up two players from top to bottom of rankings. If number of players are uneven, the last player gets a bye which is an automatic win.
+Since the database view for PlayerStandings already provides a ranked list of players, the pairing is done simply by pairing up two players from top to bottom of rankings. If number of players are uneven, the last player gets a bye which is an automatic win. Rematches between players are prevented by fetching the opponent view which returns a table of players and their opponents. This information is used to skip pairing between players who have played against each other in previous rounds.
 
