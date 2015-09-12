@@ -27,7 +27,7 @@ A tournament table is provided to track multiple tournaments. For compatibility 
 - Prevent rematches between players
 This functionality is implemented via a View in the database that returns all the players and their opponents. This information is used in a dictionary to avoid pairing up players who have already played against each other.
 - Bye games
-When there is an odd number of players, one player gets a bye game which is an automatic win. Players who already have had a bye game will not get a bye.
+When there is an odd number of players, one player gets a bye game which is an automatic win. No fake player is created for a bye game, instead the player is matched against itself. Function reportMatch() detects this and simply updates the wins and points for the player who gets a bye.
 - Tied games
 reportMatch() takes an additional boolean parameter to denote if there was a draw. For compatibility purposes this parameter is a default param that defaults to false.
 - Opponent Match Wins
