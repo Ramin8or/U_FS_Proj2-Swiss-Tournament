@@ -152,7 +152,7 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
             SET byes = byes + 1 
             WHERE tournament_id = (%s) AND player_id = (%s)  
         '''
-        c.execute(sql_update_bye, str(tournament_id), str(winner))
+        c.execute(sql_update_bye, (str(tournament_id), str(winner)))
     # Update points in the register table for win or tie
     sql_update_points = '''
     UPDATE register 
@@ -177,7 +177,7 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
             SET wins = wins + 1 
             WHERE tournament_id = (%s) AND player_id = (%s)  
         '''
-        c.execute(sql_update_wins,(str(tournament_id), str(winner)))
+        c.execute(sql_update_wins, (str(tournament_id), str(winner)))
     db.commit()
     db.close()    
 

@@ -138,20 +138,29 @@ def testByeGame():
         raise ValueError(
             "For five players, swissPairings should return three pairs.")
     # Verify that there is one pairing with a player matched with itself (bye game)
+    player_with_bye = 0
     found_bye = False
     for each_tuple in pairings:
         (pid1, name1, pid2, name2) = each_tuple
         if pid1 == pid2:
             if found_bye == False:
                 found_bye = True
+                player_with_bye = pid1
             else:
                 raise ValueError(
                     "There should only be a single bye game.")
 
     if found_bye == False:
         raise ValueError(
-            "No bye game was scheduled.")
-
+            "No bye game was found.")
+    # Report the bye match for bye player that was just found
+    reportMatch(player_with_bye, player_with_bye)
+    # Look at standings, the top player should have a bye game
+    standings = playerStandings(1, True)
+    (id1, name1, wins1, matches1, byes1) = standings[0]
+    if wins1 != 1 and byes1 != 1:
+        raise ValueError(
+            "Top player did not have a bye game reported.")
     print "9. Swiss pairing handles bye games for odd number of players."
 
 
