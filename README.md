@@ -1,4 +1,4 @@
-**U_FS_Proj2-Swiss-Tournament: Udacity Full-Stack Nanodegree Project 2: Swiss Tournament**
+**Udacity Full-Stack Nanodegree Project 2: Swiss Tournament:** *(U_FS_Proj2-Swiss-Tournament)*
 
 # Introduction
 This project is the second project for Udacity Full-Stack Nanodegree. For more information on setting up the environment to run the project and the specifications please refer to [this document.](https://docs.google.com/document/d/16IgOm4XprTaKxAa8w02y028oBECOoB1EI1ReddADEeY/pub?embedded=true)
