@@ -90,7 +90,8 @@ CREATE VIEW standings AS
     SELECT  register.player_id  AS id,
             players.name        AS name,
             register.wins       AS wins,
-            COUNT( matches )    AS matches
+            COUNT( matches )    AS matches,
+            register.byes       AS byes
     FROM   register
     LEFT JOIN players ON
         (register.player_id = players.id)

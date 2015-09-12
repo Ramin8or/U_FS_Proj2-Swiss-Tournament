@@ -6,7 +6,11 @@
 # dbapi library to connect to PostgreSQL database
 import psycopg2
 
+# used for creating the opponents_table dictionary
 from collections import defaultdict
+
+# used for gettung sys.maxint
+import sys
 
 # Global constanst for points. Tie earns 1 point, Win earns 3
 TIE_POINTS = 1
@@ -88,7 +92,7 @@ def registerPlayer(name, tournament_id = 1):
     return player_id   
 
 
-def playerStandings(tournament_id = 1):
+def playerStandings(tournament_id = 1, includeBye = False):
     """Returns list of players and win records, sorted by overall standings.
 
     The first entry in the list should be the player in first place, or player
@@ -96,6 +100,7 @@ def playerStandings(tournament_id = 1):
     
     Arg:
       tournament_id: denotes the tournament (default is 'Tournament 1')
+      includeBye: if True will also show bye games in standings
     
     Returns:
       A list of tuples, each of which contains (id, name, wins, matches):
@@ -103,11 +108,15 @@ def playerStandings(tournament_id = 1):
         name: the player's full name (as registered)
         wins: the number of wins
         matches: the number of matches the player has played
+        byes: number of bye games the player has had
     """
     db = connect()
     c = db.cursor()
     # Return the player standings from the standings view. See tournament.sql.
-    c.execute( "SELECT id, name, wins, matches FROM standings" )
+    if includeBye == False:
+        c.execute( "SELECT id, name, wins, matches FROM standings" )
+    else:
+        c.execute( "SELECT id, name, wins, matches, byes FROM standings" )
     result = c.fetchall()
     db.close()    
     return result
@@ -141,14 +150,14 @@ def reportMatch(winner, loser, tied = False, tournament_id = 1):
         sql_update_bye = '''
         UPDATE register 
             SET byes = byes + 1 
-            WHERE tournament_id = {t_id} AND player_id = {p_id}  
+            WHERE tournament_id = (%s) AND player_id = (%s)  
         '''
         c.execute(sql_update_bye, str(tournament_id), str(winner))
     # Update points in the register table for win or tie
     sql_update_points = '''
     UPDATE register 
-        SET points = points + %s WHERE 
-        tournament_id = %s AND player_id = %s  
+        SET points = points + (%s) WHERE 
+        tournament_id = (%s) AND player_id = (%s)  
     '''
     if (tied == True):
         # For a tied match, both players get an additional TIE_POINTS points
@@ -201,8 +210,40 @@ def getOpponents(tournament_id = 1):
     return opponents_table
 
 
+def findByePlayer(standings, picked_already):
+    """Returns the index of lowest standing player with lowest byes
+   
+    Arg:
+      standings: list returned from playerStandings() function.
+      picked_already: list of booleans that denote whether the index in 
+                       standings has already been picked. 
+
+    Returns:
+      Function sets the picked_already[index] to True, when player is picked
+      returns the index into standings of player suitable for a bye game
+     """
+    minimum_byes = sys.maxint
+    index = len(standings) - 1
+    lowest_bye_index = index
+    while index >= 0:
+        if picked_already[index] == False:
+            # standings[index][4] denotes number of bye games for player
+            num_of_byes = standings[index][4]
+            if num_of_byes == 0:
+                # Return the index for this player who will get a Bye Game
+                picked_already[index] = True
+                return index
+            elif num_of_byes < minimum_byes:
+                # Remember the player with lowest number of byes
+                minimum_byes = num_of_byes
+                lowest_bye_index = index
+        index = index - 1
+    # Return index of players with least number of byes
+    return lowest_bye_index
+
+
 def pickNextPlayer(standings, picked_already, opponents_list=[]):
-    """Returns the index of next available player
+    """Returns the index of next available player for pairing
    
     Arg:
       standings: list returned from playerStandings() function.
@@ -232,6 +273,20 @@ def pickNextPlayer(standings, picked_already, opponents_list=[]):
     return -1
 
 
+def addToPairings(swiss_pairings, standings, player_1, player_2):
+    """Helper function that appends players to swiss_pairings
+   
+    Arg:
+      swiss_pairings: list of tuples that denote matched players
+      standings: list returned from playerStandings() function.
+      player_1, player_2: index of players who will be appended 
+    """
+    swiss_pairings.append(
+        (standings[player_1][0], standings[player_1][1],
+        standings[player_2][0], standings[player_2][1])
+        )
+
+
 def swissPairings(tournament_id = 1):
     """Returns a list of pairs of players for the next round of a match.
   
@@ -239,9 +294,9 @@ def swissPairings(tournament_id = 1):
     appears exactly once in the pairings.  Each player is paired with another
     player with an equal or nearly-equal win record, that is, a player adjacent
     to him or her in the standings.
-    For an odd number of players, the last player will be paired with itself
-    to denote a bye game. reportMatch() detects bye games when winner and
-    loser is the same player.
+    For an odd number of players, the last ranking player with lowest number of
+    byes will be paired with itself to denote a bye game. reportMatch() detects 
+    bye games when winner and loser is the same player.
   
     Arg:
       tournament_id: id of the tournament to perform swiss pairing for
@@ -255,14 +310,20 @@ def swissPairings(tournament_id = 1):
     """
     swiss_pairings = []
     # playerStandings() returns list sorted by standing including tie breakers
-    standings = playerStandings(tournament_id)
-    # paired_table is list of booleans to denote if player at index is paired
+    # here the second parameter is True so Bye Games will be included also
+    standings = playerStandings(tournament_id, True)
+    # paired_table[index] == True, means player in standings[index] is paired
     paired_table = [False] * len(standings)
     # opponents_table is a dictionary of players and their opponents
     opponents_table = getOpponents(tournament_id)
-    # Do the Swiss Pairing
+    # first see if a bye game is in order
+    if len(standings) % 2 != 0:
+        # Find who gets a bye and add it to the pairings
+        player_1 = findByePlayer(standings, paired_table)
+        addToPairings(swiss_pairings, standings, player_1, player_1)
+    # do the Swiss Pairing
     while True:
-        # Pick the top unpaired player
+        # Starting from the top of standings pick the first unpaired player
         player_1 = pickNextPlayer(standings, paired_table)
         if player_1 == -1:
             # No more players to match, we are done
@@ -277,10 +338,7 @@ def swissPairings(tournament_id = 1):
             # No one to pair with. Player gets a bye game (paired with itself)
             player_2 = player_1 
         # Append to swiss_parings results
-        swiss_pairings.append(
-            (standings[player_1][0], standings[player_1][1],
-            standings[player_2][0], standings[player_2][1])
-        )
+        addToPairings(swiss_pairings, standings, player_1, player_2)
     # We are done!
     return swiss_pairings
 

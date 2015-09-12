@@ -22,17 +22,17 @@ The project uses a PostgreSQL database to record tournament information such as 
 # Extra credit features implemented
 Beyond the basic requirements, the following features have also been implemented:
 
-- Support for multiple tournaments
+- **Support for multiple tournaments: **
 A tournament table is provided to track multiple tournaments. For compatibility purposes, all functions in **tournament.py** take a tournament_id as a default parameter that defaults to 'Tournament 1'.
-- Prevent rematches between players
+- **Prevent rematches between players: ** 
 This functionality is implemented via a View in the database that returns all the players and their opponents. This information is used in a dictionary to avoid pairing up players who have already played against each other.
-- Bye games
-When there is an odd number of players, one player gets a bye game which is an automatic win. No fake player is created for a bye game, instead the player is matched against itself. Function reportMatch() detects this and simply updates the wins and points for the player who gets a bye.
-- Tied games
+- **Bye games: **
+When there is an odd number of players, one player gets a bye game which is an automatic win. The player who gets a bye is the lowest ranking player with the least number of byes in previous gaems. No fake player is created for a bye game, instead the player is matched against itself. Function reportMatch() detects this and simply updates the wins and points for the player who gets a bye.
+- **Tied games: **
 reportMatch() takes an additional boolean parameter to denote if there was a draw. For compatibility purposes this parameter is a default param that defaults to false.
-- Opponent Match Wins
+- **Opponent Match Wins (OMW): **
 When two players have the same number of points, a tie breaker is used by looking at OMW. The player who has played against opponents with more points wins.
-- Points
+- **Points: **
 3 points are earned for each win, and 1 point for a draw. No points are given for a loss. playerStandings() continues to report wins and number of matches, however, the standings are sorted by points earned and opponent win points.
 
 # Tournament Database
